@@ -120,11 +120,13 @@ return /******/ (function(modules) { // webpackBootstrap
 	// Expose all/spread
 	// 为实例添加all和spread方法
 	axios.all = function all(promises) {
+	  // 直接使用了Promise.all
 	  return Promise.all(promises);
 	};
+	// 一个高阶函数，入参回调函数，返回参数为数组的包装函数，这个函数使用apply方式调用该回调函数，
+	// 同时把数组作为参数传入。所以数组会被展开作为实参传给回调函数
 	axios.spread = __webpack_require__(25);
 	
-	console.log(axios, Object.keys(axios));
 	
 	module.exports = axios;
 	
@@ -147,7 +149,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	var toString = Object.prototype.toString;
 	
 	/**
-	 * Determine if a value is an Array
+	 * 判断是否是一个数组
 	 *
 	 * @param {Object} val The value to test
 	 * @returns {boolean} True if value is an Array, otherwise false
@@ -157,7 +159,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	}
 	
 	/**
-	 * Determine if a value is undefined
+	 * 判断值是否为undefined
 	 *
 	 * @param {Object} val The value to test
 	 * @returns {boolean} True if the value is undefined, otherwise false
@@ -167,7 +169,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	}
 	
 	/**
-	 * Determine if a value is a Buffer
+	 * 判断是否是一个buffer，通过调用值的构造器上的isBuffer函数判断
 	 *
 	 * @param {Object} val The value to test
 	 * @returns {boolean} True if value is a Buffer, otherwise false
@@ -178,7 +180,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	}
 	
 	/**
-	 * Determine if a value is an ArrayBuffer
+	 * 判断是否是ArrayBuffer
 	 *
 	 * @param {Object} val The value to test
 	 * @returns {boolean} True if value is an ArrayBuffer, otherwise false
@@ -188,7 +190,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	}
 	
 	/**
-	 * Determine if a value is a FormData
+	 * 判断值是否是一个FormData
 	 *
 	 * @param {Object} val The value to test
 	 * @returns {boolean} True if value is an FormData, otherwise false
@@ -198,16 +200,18 @@ return /******/ (function(modules) { // webpackBootstrap
 	}
 	
 	/**
-	 * Determine if a value is a view on an ArrayBuffer
+	 * 判断是否是ArrayBuffer View
 	 *
 	 * @param {Object} val The value to test
 	 * @returns {boolean} True if value is a view on an ArrayBuffer, otherwise false
 	 */
 	function isArrayBufferView(val) {
 	  var result;
+	  // 优先使用ArrayBuffer.isView判断
 	  if ((typeof ArrayBuffer !== 'undefined') && (ArrayBuffer.isView)) {
 	    result = ArrayBuffer.isView(val);
 	  } else {
+	    // 如果不符合第一个判断条件，判断val.buffer是否是ArrayBuffer的实例
 	    result = (val) && (val.buffer) && (val.buffer instanceof ArrayBuffer);
 	  }
 	  return result;
@@ -234,7 +238,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	}
 	
 	/**
-	 * Determine if a value is an Object
+	 * 判断是否是一个对象，需要排除null
 	 *
 	 * @param {Object} val The value to test
 	 * @returns {boolean} True if value is an Object, otherwise false
@@ -244,7 +248,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	}
 	
 	/**
-	 * Determine if a value is a Date
+	 * 判断是否是日期对象
 	 *
 	 * @param {Object} val The value to test
 	 * @returns {boolean} True if value is a Date, otherwise false
@@ -254,7 +258,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	}
 	
 	/**
-	 * Determine if a value is a File
+	 * 判断是否是文件
 	 *
 	 * @param {Object} val The value to test
 	 * @returns {boolean} True if value is a File, otherwise false
@@ -264,7 +268,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	}
 	
 	/**
-	 * Determine if a value is a Blob
+	 * 判断是否是一个Blob
 	 *
 	 * @param {Object} val The value to test
 	 * @returns {boolean} True if value is a Blob, otherwise false
@@ -274,7 +278,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	}
 	
 	/**
-	 * Determine if a value is a Function
+	 * 判断是否是一个函数
 	 *
 	 * @param {Object} val The value to test
 	 * @returns {boolean} True if value is a Function, otherwise false
@@ -284,7 +288,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	}
 	
 	/**
-	 * Determine if a value is a Stream
+	 * 判断是否是一个Stream
 	 *
 	 * @param {Object} val The value to test
 	 * @returns {boolean} True if value is a Stream, otherwise false
@@ -294,7 +298,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	}
 	
 	/**
-	 * Determine if a value is a URLSearchParams object
+	 * 判断是否是一个URLSearchParams实例，URLSearchParams实例提供了一些查询参数相关的方法
 	 *
 	 * @param {Object} val The value to test
 	 * @returns {boolean} True if value is a URLSearchParams object, otherwise false
@@ -304,7 +308,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	}
 	
 	/**
-	 * Trim excess whitespace off the beginning and end of a string
+	 * 去两端空格
 	 *
 	 * @param {String} str The String to trim
 	 * @returns {String} The String freed of excess whitespace
@@ -314,7 +318,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	}
 	
 	/**
-	 * Determine if we're running in a standard browser environment
+	 * 判断是否是标准浏览器环境
 	 *
 	 * This allows axios to run in a web worker, and react-native.
 	 * Both environments support XMLHttpRequest, but not fully standard globals.
@@ -390,8 +394,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	 * console.log(result.foo); // outputs 456
 	 * ```
 	 *
-	 * @param {Object} obj1 Object to merge
-	 * @returns {Object} Result of all merge properties
+	 * @param {Object} obj1 ... 它接收不限数个对象
+	 * @returns {Object} 返回多个对象合并的结果
 	 */
 	function merge(/* obj1, obj2, obj3, ... */) {
 	  var result = {};
@@ -403,6 +407,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	    }
 	  }
 	
+	  // 遍历每一个参数，调用assignValue
 	  for (var i = 0, l = arguments.length; i < l; i++) {
 	    forEach(arguments[i], assignValue);
 	  }
@@ -412,6 +417,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	/**
 	 * Function equal to merge with the difference being that no reference
 	 * to original objects is kept.
+	 * 深度合并，它的优势是不会保持原对象的属性的引用
 	 *
 	 * @see merge
 	 * @param {Object} obj1 Object to merge
@@ -515,18 +521,24 @@ return /******/ (function(modules) { // webpackBootstrap
 	'use strict';
 	
 	var utils = __webpack_require__(2);
+	// 构建URL？
 	var buildURL = __webpack_require__(5);
+	// 拦截器管理器？
 	var InterceptorManager = __webpack_require__(6);
+	// 派发请求？
 	var dispatchRequest = __webpack_require__(7);
 	var mergeConfig = __webpack_require__(22);
 	
 	/**
-	 * Create a new instance of Axios
+	 * Axios构造器，它只有defaults和interceptors这两个对象属性
 	 *
-	 * @param {Object} instanceConfig The default config for the instance
+	 * @param {Object} instanceConfig 实例的默认配置
 	 */
 	function Axios(instanceConfig) {
+	  // 默认配置暂存到defaults
 	  this.defaults = instanceConfig;
+	  // 拦截器对象，分为request和response
+	  // InterceptorManager ？？？
 	  this.interceptors = {
 	    request: new InterceptorManager(),
 	    response: new InterceptorManager()
@@ -534,23 +546,29 @@ return /******/ (function(modules) { // webpackBootstrap
 	}
 	
 	/**
-	 * Dispatch a request
+	 * 添加原型方法request
 	 *
-	 * @param {Object} config The config specific for this request (merged with this.defaults)
+	 * @param {Object} config 参数为请求配置项，它之后会和默认配置合并
 	 */
 	Axios.prototype.request = function request(config) {
 	  /*eslint no-param-reassign:0*/
 	  // Allow for axios('example/url'[, config]) a la fetch API
+	  // 考虑到第一个参数是url的情况，判断如果第一个参数是字符串，那就取第二个参数为config
+	  // 如果第二个参数没有，就默认config为{}
 	  if (typeof config === 'string') {
 	    config = arguments[1] || {};
+	    // 把url的属性值补上
 	    config.url = arguments[0];
 	  } else {
 	    config = config || {};
 	  }
 	
+	  // 与默认配置合并（对于配置项的各个属性，它有不同的合并规则，需要看mergeConfig）
 	  config = mergeConfig(this.defaults, config);
 	
-	  // Set config.method
+	  // 设置config.method属性，如果有，统一转为小写
+	  // 如果没有，使用默认配置中的值，也要转为小写
+	  // 如果默认配置中也没有，就使用get作为默认值
 	  if (config.method) {
 	    config.method = config.method.toLowerCase();
 	  } else if (this.defaults.method) {
@@ -560,17 +578,29 @@ return /******/ (function(modules) { // webpackBootstrap
 	  }
 	
 	  // Hook up interceptors middleware
+	  // 初始的连接拦截器中间件
 	  var chain = [dispatchRequest, undefined];
+	  // 如果config是thenable对象，它会转为已完成的promise实例，并立即执行thenable的then方法
+	  // 如果config是一个promise，直接穿过
+	  // 如果是一个普通的参数，它会变成一个已完成的promise，参数config会传给then
+	  // 那这里config到底是什么，需要看看默认配置项
 	  var promise = Promise.resolve(config);
 	
+	  // 遍历请求拦截器，它的每一项似乎是一个包含了fulfilled和rejected的对象
+	  // （需要回头看看InterceptorManager构造器是什么）
+	  // 将拦截器每一项的fulfilled和rejected都从头部加到chain数组中
 	  this.interceptors.request.forEach(function unshiftRequestInterceptors(interceptor) {
 	    chain.unshift(interceptor.fulfilled, interceptor.rejected);
 	  });
 	
+	  // 同上面类似，这是将响应拦截器每一项的fulfilled和rejected都从尾部加到chain数组中
 	  this.interceptors.response.forEach(function pushResponseInterceptors(interceptor) {
 	    chain.push(interceptor.fulfilled, interceptor.rejected);
 	  });
 	
+	  // 从chain的头部取出2项，作为promise.then()的参数
+	  // 只要存在chain，这段代码就会一直执行
+	  // 似乎这个promise是已经resolve的，所以才能马上执行？？
 	  while (chain.length) {
 	    promise = promise.then(chain.shift(), chain.shift());
 	  }
@@ -578,12 +608,16 @@ return /******/ (function(modules) { // webpackBootstrap
 	  return promise;
 	};
 	
+	// 获取uri
 	Axios.prototype.getUri = function getUri(config) {
+	  // 首先合并配置项
 	  config = mergeConfig(this.defaults, config);
+	  // 要先看buildURL方法
 	  return buildURL(config.url, config.params, config.paramsSerializer).replace(/^\?/, '');
 	};
 	
-	// Provide aliases for supported request methods
+	// 遍历添加这4个快捷方法，它们的参数是url和配置项，而method是预先指定好的
+	// 用到了utils.merge方法，用于合并配置项
 	utils.forEach(['delete', 'get', 'head', 'options'], function forEachMethodNoData(method) {
 	  /*eslint func-names:0*/
 	  Axios.prototype[method] = function(url, config) {
@@ -594,6 +628,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	  };
 	});
 	
+	// 遍历添加3个方法，它们接收url, data, config3个参数
 	utils.forEach(['post', 'put', 'patch'], function forEachMethodWithData(method) {
 	  /*eslint func-names:0*/
 	  Axios.prototype[method] = function(url, data, config) {
@@ -872,18 +907,23 @@ return /******/ (function(modules) { // webpackBootstrap
 	'use strict';
 	
 	var utils = __webpack_require__(2);
+	// 用于格式化请求头名称的
 	var normalizeHeaderName = __webpack_require__(11);
 	
+	// 默认请求头类型，在xhr中如果是post请求，这个请求头是必需的
 	var DEFAULT_CONTENT_TYPE = {
 	  'Content-Type': 'application/x-www-form-urlencoded'
 	};
 	
+	// 设置请求头ContentType，如果没有设的话
 	function setContentTypeIfUnset(headers, value) {
+	  // headers对象存在，但是headers['Content-Type']不存在的话，设置该值
 	  if (!utils.isUndefined(headers) && utils.isUndefined(headers['Content-Type'])) {
 	    headers['Content-Type'] = value;
 	  }
 	}
 	
+	// 获取默认的适配器，浏览器使用xhr适配器，node环境使用http适配器
 	function getDefaultAdapter() {
 	  var adapter;
 	  if (typeof XMLHttpRequest !== 'undefined') {
@@ -896,9 +936,12 @@ return /******/ (function(modules) { // webpackBootstrap
 	  return adapter;
 	}
 	
+	// 设置defaults对象
 	var defaults = {
+	  // 适配器属性adapter
 	  adapter: getDefaultAdapter(),
-	
+	  // transformRequest值的每一个fn都会被调用且接收两个参数（data, headers）
+	  // 这里这个默认函数的功能是：1、格式化请求头名称 2、根据不同的data类型做一些对应的处理
 	  transformRequest: [function transformRequest(data, headers) {
 	    normalizeHeaderName(headers, 'Accept');
 	    normalizeHeaderName(headers, 'Content-Type');
@@ -924,7 +967,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	    }
 	    return data;
 	  }],
-	
+	  // transformResponse的值的每一个函数都会被调用
+	  // 这里默认的函数它的功能是如果data是字符串，尝试转成json
 	  transformResponse: [function transformResponse(data) {
 	    /*eslint no-param-reassign:0*/
 	    if (typeof data === 'string') {
@@ -936,36 +980,45 @@ return /******/ (function(modules) { // webpackBootstrap
 	  }],
 	
 	  /**
+	   * 超时时间
 	   * A timeout in milliseconds to abort a request. If set to 0 (default) a
 	   * timeout is not created.
 	   */
 	  timeout: 0,
-	
+	  // 要用作 xsrf 令牌的值的cookie的名称
 	  xsrfCookieName: 'XSRF-TOKEN',
+	  // 携带xsrf令牌值的http头的名称
 	  xsrfHeaderName: 'X-XSRF-TOKEN',
 	
+	  // 允许的http响应内容的最大值
 	  maxContentLength: -1,
+	  // 正文最大值
 	  maxBodyLength: -1,
 	
+	  // 请求成功的状态码默认是>=200且小于300，如果需要修改，可以配置这个validateStatus属性
 	  validateStatus: function validateStatus(status) {
 	    return status >= 200 && status < 300;
 	  }
 	};
 	
+	
 	defaults.headers = {
+	  // 通用的请求头是Accept
 	  common: {
 	    'Accept': 'application/json, text/plain, */*'
 	  }
 	};
 	
+	// 这三种类型的请求，它们对应的默认请求头是{}
 	utils.forEach(['delete', 'get', 'head'], function forEachMethodNoData(method) {
 	  defaults.headers[method] = {};
 	});
 	
+	// 而'post', 'put', 'patch'这三种的默认请求头中需
+	// 包含'Content-Type': 'application/x-www-form-urlencoded'
 	utils.forEach(['post', 'put', 'patch'], function forEachMethodWithData(method) {
 	  defaults.headers[method] = utils.merge(DEFAULT_CONTENT_TYPE);
 	});
-	
 	module.exports = defaults;
 
 
@@ -977,8 +1030,12 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	var utils = __webpack_require__(2);
 	
+	// 参数有2个，headers是数组，normalizedName是字符串
+	// 遍历数组的每一项，对它们应用processHeader方法
 	module.exports = function normalizeHeaderName(headers, normalizedName) {
 	  utils.forEach(headers, function processHeader(value, name) {
+	    // 如果name不等于normalizedName，但它们小写后的结果又是相等的
+	    // 就把headers[name]改成headers[normalizedName]
 	    if (name !== normalizedName && name.toUpperCase() === normalizedName.toUpperCase()) {
 	      headers[normalizedName] = value;
 	      delete headers[name];
@@ -1727,6 +1784,9 @@ return /******/ (function(modules) { // webpackBootstrap
 	'use strict';
 	
 	/**
+	 * 它是一个高阶函数，接收回调作为参数，返回了一个包装函数wrap
+	 * wrap函数接收一个数组作为参数，返回回调函数的调用结果，数组作为参数被传入。
+	 * 因为回调函数是通过fn.apply()方式调用的，所以它实际上是把数组的每一项展开作为回调函数的实参了
 	 * Syntactic sugar for invoking a function and expanding an array for arguments.
 	 *
 	 * Common use case would be to use `Function.prototype.apply`.
