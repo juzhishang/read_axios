@@ -62,52 +62,69 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	'use strict';
 	
+	// 工具方法
 	var utils = __webpack_require__(2);
+	// 辅助方法bind，就是自定义bind方法
 	var bind = __webpack_require__(3);
+	// 核心代码
 	var Axios = __webpack_require__(4);
+	// 一个用于合并配置项的方法
 	var mergeConfig = __webpack_require__(22);
+	// 实例默认配置
 	var defaults = __webpack_require__(10);
 	
 	/**
-	 * Create an instance of Axios
+	 * 用于创建Axios实例
+	 * 这个实例的核心是Axios.prototype.request方法，经过修正，它的this指向了Axios的实例context
+	 * 通过两次复制继承，这个实例继承了Axios.prototype上的属性和方法，也继承了context上的属性
 	 *
-	 * @param {Object} defaultConfig The default config for the instance
-	 * @return {Axios} A new instance of Axios
+	 * @param {Object} defaultConfig 实例的默认配置
+	 * @return {Axios} Axios实例
 	 */
 	function createInstance(defaultConfig) {
+	  // 创建上下文this
 	  var context = new Axios(defaultConfig);
+	  // Axios.prototype.request的this强制绑定到context
 	  var instance = bind(Axios.prototype.request, context);
 	
-	  // Copy axios.prototype to instance
+	  // 遍历axios.prototype上的属性一一继承给instanceinstance，同时如果属性是方法的话，要修正this指向
 	  utils.extend(instance, Axios.prototype, context);
 	
-	  // Copy context to instance
+	  // 遍历上下文上的属性一一继承给实例instance
 	  utils.extend(instance, context);
 	
 	  return instance;
 	}
 	
-	// Create the default instance to be exported
+	// 根据默认配置创建要被导出的axios实例
 	var axios = createInstance(defaults);
 	
 	// Expose Axios class to allow class inheritance
+	// 为实例添加Axios属性，它是Axios构造器的引用
 	axios.Axios = Axios;
 	
 	// Factory for creating new instances
+	// 为实例添加create方法，它根据配置项生成一个新的实例
 	axios.create = function create(instanceConfig) {
+	  // mergeConfig是合并后的配置项
+	  // 返回根据新配置生成的axios实例
 	  return createInstance(mergeConfig(axios.defaults, instanceConfig));
 	};
 	
 	// Expose Cancel & CancelToken
+	// 为实例添加取消相关的属性或方法
 	axios.Cancel = __webpack_require__(23);
 	axios.CancelToken = __webpack_require__(24);
 	axios.isCancel = __webpack_require__(9);
 	
 	// Expose all/spread
+	// 为实例添加all和spread方法
 	axios.all = function all(promises) {
 	  return Promise.all(promises);
 	};
 	axios.spread = __webpack_require__(25);
+	
+	console.log(axios, Object.keys(axios));
 	
 	module.exports = axios;
 	
@@ -324,37 +341,34 @@ return /******/ (function(modules) { // webpackBootstrap
 	}
 	
 	/**
-	 * Iterate over an Array or an Object invoking a function for each item.
+	 * 对数组上的每一个元素，或者对象上的每一个自有属性，遍历调用fn
+	 * 给fn传三个参数：值、下标（健）、数组（对象）本身
 	 *
-	 * If `obj` is an Array callback will be called passing
-	 * the value, index, and complete array for each item.
-	 *
-	 * If 'obj' is an Object callback will be called passing
-	 * the value, key, and complete object for each property.
-	 *
-	 * @param {Object|Array} obj The object to iterate
-	 * @param {Function} fn The callback to invoke for each item
+	 * @param {Object|Array} obj 对象或数组
+	 * @param {Function} fn 要调用的函数
 	 */
 	function forEach(obj, fn) {
-	  // Don't bother if no value provided
+	  // obj不能为null或者undefined
 	  if (obj === null || typeof obj === 'undefined') {
 	    return;
 	  }
 	
-	  // Force an array if not already something iterable
+	  // 如果不是对象或者数组，转为数组（用[]包裹）
 	  if (typeof obj !== 'object') {
 	    /*eslint no-param-reassign:0*/
 	    obj = [obj];
 	  }
 	
+	  // 迭代数组
 	  if (isArray(obj)) {
-	    // Iterate over array values
+	    // 遍历调用fn,参数为数组的值、下标以及数组本身
 	    for (var i = 0, l = obj.length; i < l; i++) {
 	      fn.call(null, obj[i], i, obj);
 	    }
 	  } else {
-	    // Iterate over object keys
+	    // 迭代对象
 	    for (var key in obj) {
+	      // 对对象上的每一个自有属性，分别调用fn,传入的参数为值、健、对象本身
 	      if (Object.prototype.hasOwnProperty.call(obj, key)) {
 	        fn.call(null, obj[key], key, obj);
 	      }
@@ -422,7 +436,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	}
 	
 	/**
-	 * Extends object a by mutably adding to it the properties of object b.
+	 * 通过遍历的方式把b上的属性继承给a,如果属性是函数的话，要修改this指向。
 	 *
 	 * @param {Object} a The object to be extended
 	 * @param {Object} b The object to copy properties from
@@ -430,7 +444,10 @@ return /******/ (function(modules) { // webpackBootstrap
 	 * @return {Object} The resulting value of object a
 	 */
 	function extend(a, b, thisArg) {
+	  // 对b对象的每一个自有属性（或者b数组的每个元素）分别应用assignValue
+	  // 传入的参数就是值和健名（或者下标）
 	  forEach(b, function assignValue(val, key) {
+	    // 如果值是函数，先把函数this指向绑定到指定的上下文thisArg后再复制。
 	    if (thisArg && typeof val === 'function') {
 	      a[key] = bind(val, thisArg);
 	    } else {
@@ -471,12 +488,21 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	'use strict';
 	
+	
+	/**
+	 * 自定义bind函数
+	 * @param {*} fn 要绑定this的函数
+	 * @param {*} thisArg 上下文参数
+	 * @returns 包装函数wrap
+	 */
 	module.exports = function bind(fn, thisArg) {
 	  return function wrap() {
+	    // 创建类数组arguments的数组副本
 	    var args = new Array(arguments.length);
 	    for (var i = 0; i < args.length; i++) {
 	      args[i] = arguments[i];
 	    }
+	    // this绑定
 	    return fn.apply(thisArg, args);
 	  };
 	};
@@ -919,6 +945,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	  xsrfHeaderName: 'X-XSRF-TOKEN',
 	
 	  maxContentLength: -1,
+	  maxBodyLength: -1,
 	
 	  validateStatus: function validateStatus(status) {
 	    return status >= 200 && status < 300;
@@ -1163,7 +1190,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	 */
 	module.exports = function settle(resolve, reject, response) {
 	  var validateStatus = response.config.validateStatus;
-	  if (!validateStatus || validateStatus(response.status)) {
+	  if (!response.status || !validateStatus || validateStatus(response.status)) {
 	    resolve(response);
 	  } else {
 	    reject(createError(
@@ -1227,7 +1254,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	  error.response = response;
 	  error.isAxiosError = true;
 	
-	  error.toJSON = function() {
+	  error.toJSON = function toJSON() {
 	    return {
 	      // Standard
 	      message: this.message,
@@ -1516,8 +1543,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	var utils = __webpack_require__(2);
 	
 	/**
-	 * Config-specific merge-function which creates a new config-object
-	 * by merging two configuration objects together.
+	 * 合并了config1和config2到一个新的对象。它把键分为了4种类型，对它们应用不同的合并规则。
 	 *
 	 * @param {Object} config1
 	 * @param {Object} config2
@@ -1526,36 +1552,53 @@ return /******/ (function(modules) { // webpackBootstrap
 	module.exports = function mergeConfig(config1, config2) {
 	  // eslint-disable-next-line no-param-reassign
 	  config2 = config2 || {};
+	  // 结果对象
 	  var config = {};
 	
-	  var valueFromConfig2Keys = ['url', 'method', 'params', 'data'];
-	  var mergeDeepPropertiesKeys = ['headers', 'auth', 'proxy'];
+	  // 值来自config2的键
+	  var valueFromConfig2Keys = ['url', 'method', 'data'];
+	  // 合并深属性的键
+	  var mergeDeepPropertiesKeys = ['headers', 'auth', 'proxy', 'params'];
+	  // 对config2而言默认的键
 	  var defaultToConfig2Keys = [
 	    'baseURL', 'url', 'transformRequest', 'transformResponse', 'paramsSerializer',
 	    'timeout', 'withCredentials', 'adapter', 'responseType', 'xsrfCookieName',
 	    'xsrfHeaderName', 'onUploadProgress', 'onDownloadProgress',
-	    'maxContentLength', 'validateStatus', 'maxRedirects', 'httpAgent',
-	    'httpsAgent', 'cancelToken', 'socketPath'
+	    'maxContentLength', 'maxBodyLength', 'validateStatus', 'maxRedirects', 'httpAgent',
+	    'httpsAgent', 'cancelToken', 'socketPath', 'responseEncoding'
 	  ];
+	  // 上面是把键类型分成了3类，分别放到3个数组里，然后对这三个数组遍历，应用不同的方法，因为合并方式不一样。
 	
+	  // 这部分采用config2中的属性值，只要值不为undefined就使用，不关config1什么事
 	  utils.forEach(valueFromConfig2Keys, function valueFromConfig2(prop) {
 	    if (typeof config2[prop] !== 'undefined') {
 	      config[prop] = config2[prop];
 	    }
 	  });
 	
+	  // 这部分的属性值可能是对象，需要深拷贝。如果config2中该属性值是对象，
+	  // 使用config1和config2的该属性值对象合并的深拷贝结果。
+	  // 如果config2有值且不为undefined，使用config2的值
+	  // 最后使用config1中该属性的值，如果是对象也是要深拷贝。
 	  utils.forEach(mergeDeepPropertiesKeys, function mergeDeepProperties(prop) {
+	    // 如果config2中该属性值是对象，结果是config1和config2同名属性深拷贝的合并
 	    if (utils.isObject(config2[prop])) {
 	      config[prop] = utils.deepMerge(config1[prop], config2[prop]);
+	    // 如果config2中该属性值不为undefined，就使用config2的该属性值
 	    } else if (typeof config2[prop] !== 'undefined') {
 	      config[prop] = config2[prop];
+	    // if else执行到这里说明config2中该属性值是undefined
+	    // 如果config1中该属性值是对象，结果是config1中该属性值的深拷贝
 	    } else if (utils.isObject(config1[prop])) {
 	      config[prop] = utils.deepMerge(config1[prop]);
+	    // 如果config1中该属性值存在，就使用该值
 	    } else if (typeof config1[prop] !== 'undefined') {
 	      config[prop] = config1[prop];
 	    }
 	  });
 	
+	  // 这部分的属性值，如果config2中该属性值不为undefined，就使用config2的
+	  // 否则，如果config1中该属性值不为undefined，就使用config1的。
 	  utils.forEach(defaultToConfig2Keys, function defaultToConfig2(prop) {
 	    if (typeof config2[prop] !== 'undefined') {
 	      config[prop] = config2[prop];
@@ -1564,16 +1607,19 @@ return /******/ (function(modules) { // webpackBootstrap
 	    }
 	  });
 	
+	  // 又把这些键数组合并起来
 	  var axiosKeys = valueFromConfig2Keys
 	    .concat(mergeDeepPropertiesKeys)
 	    .concat(defaultToConfig2Keys);
 	
+	  // 找到config2中不属于axiosKeys的键，归类到otherKeys数组
 	  var otherKeys = Object
 	    .keys(config2)
 	    .filter(function filterAxiosKeys(key) {
 	      return axiosKeys.indexOf(key) === -1;
 	    });
 	
+	  // 这部分也是优先采用config2的属性值，其次是config1的属性值
 	  utils.forEach(otherKeys, function otherKeysDefaultToConfig2(prop) {
 	    if (typeof config2[prop] !== 'undefined') {
 	      config[prop] = config2[prop];
