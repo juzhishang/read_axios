@@ -521,11 +521,11 @@ return /******/ (function(modules) { // webpackBootstrap
 	'use strict';
 	
 	var utils = __webpack_require__(2);
-	// 构建URL？
+	// 构建URL
 	var buildURL = __webpack_require__(5);
-	// 拦截器管理器？
+	// 拦截器管理器
 	var InterceptorManager = __webpack_require__(6);
-	// 派发请求？
+	// 派发请求
 	var dispatchRequest = __webpack_require__(7);
 	var mergeConfig = __webpack_require__(22);
 	
@@ -537,8 +537,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	function Axios(instanceConfig) {
 	  // 默认配置暂存到defaults
 	  this.defaults = instanceConfig;
-	  // 拦截器对象，分为request和response
-	  // InterceptorManager ？？？
+	  // 拦截器对象，分为request和response，值都是InterceptorManager实例
+	  // InterceptorManager实例上有实例属性handlers，以及use、eject、forEach三个原型方法
 	  this.interceptors = {
 	    request: new InterceptorManager(),
 	    response: new InterceptorManager()
@@ -579,28 +579,28 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	  // Hook up interceptors middleware
 	  // 初始的连接拦截器中间件
+	  // dispatchRequest是一个派发请求的函数
 	  var chain = [dispatchRequest, undefined];
-	  // 如果config是thenable对象，它会转为已完成的promise实例，并立即执行thenable的then方法
-	  // 如果config是一个promise，直接穿过
+	  // 对于Promise.resolve()传入的参数，如果参数是thenable对象，它会转为已完成的promise实例，并立即执行thenable的then方法
+	  // 如果参数是一个promise，直接穿过
 	  // 如果是一个普通的参数，它会变成一个已完成的promise，参数config会传给then
-	  // 那这里config到底是什么，需要看看默认配置项
+	  // 那这里config它是一个普通对象，所以返回一个已完成的promise
 	  var promise = Promise.resolve(config);
 	
-	  // 遍历请求拦截器，它的每一项似乎是一个包含了fulfilled和rejected的对象
-	  // （需要回头看看InterceptorManager构造器是什么）
-	  // 将拦截器每一项的fulfilled和rejected都从头部加到chain数组中
+	  // 对请求拦截器的handles遍历，应用unshiftRequestInterceptors方法
+	  // handles的每一项都包含了fulfilled和rejected属性，它们是promise成功和失败的回调函数
+	  // 将这两个属性从头部加到chain数组中
 	  this.interceptors.request.forEach(function unshiftRequestInterceptors(interceptor) {
 	    chain.unshift(interceptor.fulfilled, interceptor.rejected);
 	  });
 	
-	  // 同上面类似，这是将响应拦截器每一项的fulfilled和rejected都从尾部加到chain数组中
+	  // 同上面类似，这是将响应拦截器的handles的每一项的fulfilled和rejected方法都从尾部加到chain数组中
 	  this.interceptors.response.forEach(function pushResponseInterceptors(interceptor) {
 	    chain.push(interceptor.fulfilled, interceptor.rejected);
 	  });
 	
 	  // 从chain的头部取出2项，作为promise.then()的参数
 	  // 只要存在chain，这段代码就会一直执行
-	  // 似乎这个promise是已经resolve的，所以才能马上执行？？
 	  while (chain.length) {
 	    promise = promise.then(chain.shift(), chain.shift());
 	  }
@@ -652,12 +652,13 @@ return /******/ (function(modules) { // webpackBootstrap
 	var utils = __webpack_require__(2);
 	
 	function encode(val) {
+	  // 字符转码
 	  return encodeURIComponent(val).
 	    replace(/%40/gi, '@').
 	    replace(/%3A/gi, ':').
 	    replace(/%24/g, '$').
 	    replace(/%2C/gi, ',').
-	    replace(/%20/g, '+').
+	    replace(/%20/g, '+'). // 空格变+
 	    replace(/%5B/gi, '[').
 	    replace(/%5D/gi, ']');
 	}
@@ -671,48 +672,63 @@ return /******/ (function(modules) { // webpackBootstrap
 	 */
 	module.exports = function buildURL(url, params, paramsSerializer) {
 	  /*eslint no-param-reassign:0*/
+	  // 参数不存在，直接返回url
 	  if (!params) {
 	    return url;
 	  }
 	
 	  var serializedParams;
+	  // 如果存在参数序列化器
 	  if (paramsSerializer) {
+	    // 序列化器调用结果作为序列化后的参数
 	    serializedParams = paramsSerializer(params);
+	    // 如果参数是URLSearchParams的实例
 	  } else if (utils.isURLSearchParams(params)) {
+	    // 调用URLSearchParams的实例的toString()方法可以重新转为字符串
+	    // 比如`a=1&b=2&c=3`
 	    serializedParams = params.toString();
 	  } else {
+	    // 空数组，用于存放查询参数片段，每一项的格式是：`a=1`这样
 	    var parts = [];
 	
+	    // 对params对象对每一个属性，遍历调用serialize方法
 	    utils.forEach(params, function serialize(val, key) {
 	      if (val === null || typeof val === 'undefined') {
 	        return;
 	      }
-	
+	      // 如果值是数组，键名后面跟`[]`
 	      if (utils.isArray(val)) {
 	        key = key + '[]';
 	      } else {
+	        // 否则的话，用`[]`把value包裹起来
+	        // 这样就确保了所有的值都是数组，方便下面代码遍历
 	        val = [val];
 	      }
 	
 	      utils.forEach(val, function parseValue(v) {
+	        // 如果是日期对象，将它转为iso标准的日期字符串
 	        if (utils.isDate(v)) {
 	          v = v.toISOString();
+	          // 如果是对象，调用JSON.stringify
 	        } else if (utils.isObject(v)) {
 	          v = JSON.stringify(v);
 	        }
+	        // 最后对键名调用字符转码方法，然后拼接参数后推到parts数组中
 	        parts.push(encode(key) + '=' + encode(v));
 	      });
 	    });
-	
+	    // 获得序列化后的参数字符串，是这种格式：`a=1&b=2&c=3`
 	    serializedParams = parts.join('&');
 	  }
 	
+	  // 如果有序列化参数
 	  if (serializedParams) {
+	    // 如果有hash标志#，截取#前面的内容作为url
 	    var hashmarkIndex = url.indexOf('#');
 	    if (hashmarkIndex !== -1) {
 	      url = url.slice(0, hashmarkIndex);
 	    }
-	
+	    // 把序列化参数和url拼接在一起
 	    url += (url.indexOf('?') === -1 ? '?' : '&') + serializedParams;
 	  }
 	
@@ -728,12 +744,14 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	var utils = __webpack_require__(2);
 	
+	// 实例属性handlers
 	function InterceptorManager() {
 	  this.handlers = [];
 	}
 	
 	/**
 	 * Add a new interceptor to the stack
+	 * 原型方法use
 	 *
 	 * @param {Function} fulfilled The function to handle `then` for a `Promise`
 	 * @param {Function} rejected The function to handle `reject` for a `Promise`
@@ -741,14 +759,18 @@ return /******/ (function(modules) { // webpackBootstrap
 	 * @return {Number} An ID used to remove interceptor later
 	 */
 	InterceptorManager.prototype.use = function use(fulfilled, rejected) {
+	  // handlers数组中推入一个包含fulfilled和rejected方法的对象，这个对象就是拦截器
+	  // 这2个方法是promise完成和拒绝的2个回调函数
 	  this.handlers.push({
 	    fulfilled: fulfilled,
 	    rejected: rejected
 	  });
+	  // 返回值是最新推入的这个对象在数组中的下标
 	  return this.handlers.length - 1;
 	};
 	
 	/**
+	 * 原型方法eject，将指定下标的拦截器从handles中删除，内容置为null，下标的位置还是保留的
 	 * Remove an interceptor from the stack
 	 *
 	 * @param {Number} id The ID that was returned by `use`
@@ -761,6 +783,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	/**
 	 * Iterate over all the registered interceptors
+	 * 原型方法forEach
 	 *
 	 * This method is particularly useful for skipping over any
 	 * interceptors that may have become `null` calling `eject`.
@@ -768,6 +791,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	 * @param {Function} fn The function to call for each interceptor
 	 */
 	InterceptorManager.prototype.forEach = function forEach(fn) {
+	  // 对handlers的每一个拦截器，应用forEachHandler方法。
+	  // 调用fn()方法，拦截器作为参数传入
 	  utils.forEach(this.handlers, function forEachHandler(h) {
 	    if (h !== null) {
 	      fn(h);
@@ -793,6 +818,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	 * Throws a `Cancel` if cancellation has been requested.
 	 */
 	function throwIfCancellationRequested(config) {
+	  // 如果配置项中有cancelToken参数，说明cancel已经执行过了，抛出异常。
 	  if (config.cancelToken) {
 	    config.cancelToken.throwIfRequested();
 	  }
@@ -808,9 +834,11 @@ return /******/ (function(modules) { // webpackBootstrap
 	  throwIfCancellationRequested(config);
 	
 	  // Ensure headers exist
+	  // config.headers如果不存在设默认值{}
 	  config.headers = config.headers || {};
 	
 	  // Transform request data
+	  // 转换请求数据
 	  config.data = transformData(
 	    config.data,
 	    config.headers,
@@ -818,12 +846,14 @@ return /******/ (function(modules) { // webpackBootstrap
 	  );
 	
 	  // Flatten headers
+	  // 合并请求头配置，对于指定的方法的请求头，把它展开后合并
 	  config.headers = utils.merge(
 	    config.headers.common || {},
 	    config.headers[config.method] || {},
 	    config.headers
 	  );
 	
+	  // 遍历删除各个特定方法的header配置项，因为上面一段代码已经把该合并的合并了
 	  utils.forEach(
 	    ['delete', 'get', 'head', 'post', 'put', 'patch', 'common'],
 	    function cleanHeaderConfig(method) {
@@ -831,12 +861,16 @@ return /******/ (function(modules) { // webpackBootstrap
 	    }
 	  );
 	
+	  // 获取适配器，优先使用配置里的，如果没有，使用默认的
 	  var adapter = config.adapter || defaults.adapter;
 	
+	  // 返回适配器的调用结果，是个promise。config作为参数传入。
+	  // then的两个参数是resolve和reject回调。
 	  return adapter(config).then(function onAdapterResolution(response) {
+	    // 如果已经取消就抛出异常
 	    throwIfCancellationRequested(config);
 	
-	    // Transform response data
+	    // 转换响应数据
 	    response.data = transformData(
 	      response.data,
 	      response.headers,
@@ -845,10 +879,11 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	    return response;
 	  }, function onAdapterRejection(reason) {
+	    // 如果已取消，抛出异常
 	    if (!isCancel(reason)) {
 	      throwIfCancellationRequested(config);
 	
-	      // Transform response data
+	      // 转换响应数据
 	      if (reason && reason.response) {
 	        reason.response.data = transformData(
 	          reason.response.data,
@@ -872,15 +907,16 @@ return /******/ (function(modules) { // webpackBootstrap
 	var utils = __webpack_require__(2);
 	
 	/**
-	 * Transform the data for a request or a response
+	 * 转换请求或响应的数据data
 	 *
 	 * @param {Object|String} data The data to be transformed
 	 * @param {Array} headers The headers for the request or response
-	 * @param {Array|Function} fns A single function or Array of functions
+	 * @param {Array|Function} fns fns可以是一个函数，也可以是函数数组
 	 * @returns {*} The resulting transformed data
 	 */
 	module.exports = function transformData(data, headers, fns) {
 	  /*eslint no-param-reassign:0*/
+	  // 遍历应用fns
 	  utils.forEach(fns, function transform(fn) {
 	    data = fn(data, headers);
 	  });
@@ -894,7 +930,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /***/ (function(module, exports) {
 
 	'use strict';
-	
+	// 通过实例的__CANCEL__属性判断是否已取消
 	module.exports = function isCancel(value) {
 	  return !!(value && value.__CANCEL__);
 	};
@@ -1239,17 +1275,21 @@ return /******/ (function(modules) { // webpackBootstrap
 	var createError = __webpack_require__(14);
 	
 	/**
-	 * Resolve or reject a Promise based on response status.
+	 * 根据validateStatus(response.status)决定到底是resolve还是reject
 	 *
 	 * @param {Function} resolve A function that resolves the promise.
 	 * @param {Function} reject A function that rejects the promise.
 	 * @param {object} response The response.
 	 */
 	module.exports = function settle(resolve, reject, response) {
+	  // 获取响应的validateStatus方法，它用于定义什么状态码表示成功
 	  var validateStatus = response.config.validateStatus;
+	  // response.status或者validateStatus就直接resolve
+	  // 如果都存在，判断validateStatus(response.status)的结果，再resolve
 	  if (!response.status || !validateStatus || validateStatus(response.status)) {
 	    resolve(response);
 	  } else {
+	    // reject传入的参数是createError的调用结果
 	    reject(createError(
 	      'Request failed with status code ' + response.status,
 	      response.config,
@@ -1271,12 +1311,13 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	/**
 	 * Create an Error with the specified message, config, error code, request and response.
+	 * 其实就返回了enhanceError的调用结果，只不过第一个参数传的是err对象
 	 *
-	 * @param {string} message The error message.
+	 * @param {string} message 错误信息
 	 * @param {Object} config The config.
-	 * @param {string} [code] The error code (for example, 'ECONNABORTED').
-	 * @param {Object} [request] The request.
-	 * @param {Object} [response] The response.
+	 * @param {string} [code] 错误码 (for example, 'ECONNABORTED').
+	 * @param {Object} [request] 请求
+	 * @param {Object} [response] 响应
 	 * @returns {Error} The created error.
 	 */
 	module.exports = function createError(message, config, code, request, response) {
@@ -1302,6 +1343,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	 * @returns {Error} The error.
 	 */
 	module.exports = function enhanceError(error, config, code, request, response) {
+	  // error对象上添加config、code、request、response属性
 	  error.config = config;
 	  if (code) {
 	    error.code = code;
@@ -1309,11 +1351,13 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	  error.request = request;
 	  error.response = response;
+	  // 设置isAxiosError标志
 	  error.isAxiosError = true;
 	
+	  // 添加toJson方法
 	  error.toJSON = function toJSON() {
 	    return {
-	      // Standard
+	      // 这两个是Error实例的标准属性
 	      message: this.message,
 	      name: this.name,
 	      // Microsoft
@@ -1352,6 +1396,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	 * @returns {string} The combined full path
 	 */
 	module.exports = function buildFullPath(baseURL, requestedURL) {
+	  // 如果基本url存在或者requestedURL是相对路径，返回合并后的路径
+	  // 否则返回requestedURL
 	  if (baseURL && !isAbsoluteURL(requestedURL)) {
 	    return combineURLs(baseURL, requestedURL);
 	  }
@@ -1366,7 +1412,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	'use strict';
 	
 	/**
-	 * Determines whether the specified URL is absolute
+	 * 判断是否是绝对地址
+	 * `协议://`开头或者`//`开头
 	 *
 	 * @param {string} url The URL to test
 	 * @returns {boolean} True if the specified URL is absolute, otherwise false
@@ -1386,7 +1433,15 @@ return /******/ (function(modules) { // webpackBootstrap
 	'use strict';
 	
 	/**
-	 * Creates a new URL by combining the specified URLs
+	 * 连接指定的url创建出新的url
+	 * 如果传递了相对url，先将baseUrl结尾的斜杠后的所有字符删除，然后连接一个斜杠，然后再连接删除了开头斜杠的相对url
+	 * 如果没有相对url参数，就直接返回baseUrl
+	 * combineURLs('www.baidu.com/a/b', '/c/d')
+	 * // "www.baidu.com/a/b/c/d"
+	 * combineURLs('www.baidu.com/a/b/', '/c/d')
+	 * // "www.baidu.com/a/b/c/d"
+	 * combineURLs('www.baidu.com/a/b/', 'c/d')
+	 * // "www.baidu.com/a/b/c/d"
 	 *
 	 * @param {string} baseURL The base URL
 	 * @param {string} relativeURL The relative URL
@@ -1409,6 +1464,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	// Headers whose duplicates are ignored by node
 	// c.f. https://nodejs.org/api/http.html#http_message_headers
+	// 在node中下面这些请求头的副本会被忽略
+	// 定义了一个数组来存放这些请求头名称
 	var ignoreDuplicateOf = [
 	  'age', 'authorization', 'content-length', 'content-type', 'etag',
 	  'expires', 'from', 'host', 'if-modified-since', 'if-unmodified-since',
@@ -1417,7 +1474,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	];
 	
 	/**
-	 * Parse headers into an object
+	 * 把请求头字符串转为数组
 	 *
 	 * ```
 	 * Date: Wed, 27 Aug 2014 08:58:49 GMT
@@ -1430,6 +1487,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	 * @returns {Object} Headers parsed into an object
 	 */
 	module.exports = function parseHeaders(headers) {
+	  // 结果对象
 	  var parsed = {};
 	  var key;
 	  var val;
@@ -1437,11 +1495,15 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	  if (!headers) { return parsed; }
 	
+	  // 请求头字符串通过`\n`分隔转为数组，遍历每一项，`:`前面对转为小写作为key,后面的作为val
 	  utils.forEach(headers.split('\n'), function parser(line) {
 	    i = line.indexOf(':');
 	    key = utils.trim(line.substr(0, i)).toLowerCase();
 	    val = utils.trim(line.substr(i + 1));
 	
+	    // 如果结果对象中key已经存在，判断它是不是属于重复的要被忽略的
+	    // 如果是set-cookie，值是需要与原来的值合并的，cookie的值是要以`;`结尾的
+	    // 最后一种情况，如果值存在，与原值通过`,`相连，如果不存在添加属性及值到结果对象中
 	    if (key) {
 	      if (parsed[key] && ignoreDuplicateOf.indexOf(key) >= 0) {
 	        return;
@@ -1471,8 +1533,10 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	  // Standard browser envs have full support of the APIs needed to test
 	  // whether the request URL is of the same origin as current location.
+	  // 标准浏览器环境，这个功能才是真正支持的
 	    (function standardBrowserEnv() {
 	      var msie = /(msie|trident)/i.test(navigator.userAgent);
+	      // 利用a标签来解析URL
 	      var urlParsingNode = document.createElement('a');
 	      var originURL;
 	
@@ -1486,6 +1550,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	        var href = url;
 	
 	        if (msie) {
+	        // ie需要同时设置属性和特性
 	        // IE needs attribute set twice to normalize properties
 	          urlParsingNode.setAttribute('href', href);
 	          href = urlParsingNode.href;
@@ -1512,6 +1577,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	      /**
 	    * Determine if a URL shares the same origin as the current location
+	    * 判断协议和host都相同的就算它们属于同域
 	    *
 	    * @param {String} requestURL The URL to test
 	    * @returns {boolean} True if URL shares the same origin, otherwise false
@@ -1524,6 +1590,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	    })() :
 	
 	  // Non standard browser envs (web workers, react-native) lack needed support.
+	    // 如果是非标准浏览器环境，该方法直接返回true
 	    (function nonStandardBrowserEnv() {
 	      return function isURLSameOrigin() {
 	        return true;
@@ -1541,23 +1608,27 @@ return /******/ (function(modules) { // webpackBootstrap
 	var utils = __webpack_require__(2);
 	
 	module.exports = (
+	  // 判断是否是标准浏览器环境
 	  utils.isStandardBrowserEnv() ?
 	
 	  // Standard browser envs support document.cookie
+	  // 如果是标准浏览器环境返回一个对象，包含write、read、remove方法
 	    (function standardBrowserEnv() {
 	      return {
 	        write: function write(name, value, expires, path, domain, secure) {
 	          var cookie = [];
+	          // cookie的每一个值都是键值对组合，类似这样`键=值`
+	          // 先推到数组暂存
 	          cookie.push(name + '=' + encodeURIComponent(value));
-	
+	          // 接收时间戳作为expires，再转化成GMT时间，拼接成`expires=GMT时间`推到数组
 	          if (utils.isNumber(expires)) {
 	            cookie.push('expires=' + new Date(expires).toGMTString());
 	          }
-	
+	          // 设置path
 	          if (utils.isString(path)) {
 	            cookie.push('path=' + path);
 	          }
-	
+	          // 设置domain
 	          if (utils.isString(domain)) {
 	            cookie.push('domain=' + domain);
 	          }
@@ -1565,15 +1636,15 @@ return /******/ (function(modules) { // webpackBootstrap
 	          if (secure === true) {
 	            cookie.push('secure');
 	          }
-	
+	          // 最后通过join连接成字符串，每一个值要用`; `分隔。
 	          document.cookie = cookie.join('; ');
 	        },
-	
+	        // 获取cookie
 	        read: function read(name) {
 	          var match = document.cookie.match(new RegExp('(^|;\\s*)(' + name + ')=([^;]*)'));
 	          return (match ? decodeURIComponent(match[3]) : null);
 	        },
-	
+	        // 删除cookie
 	        remove: function remove(name) {
 	          this.write(name, '', Date.now() - 86400000);
 	        }
@@ -1581,6 +1652,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	    })() :
 	
 	  // Non standard browser env (web workers, react-native) lack needed support.
+	  // 非标准浏览器环境不支持cookie
 	    (function nonStandardBrowserEnv() {
 	      return {
 	        write: function write() {},
@@ -1697,18 +1769,21 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	/**
 	 * A `Cancel` is an object that is thrown when an operation is canceled.
-	 *
+	 * Cancel构造器
 	 * @class
 	 * @param {string=} message The message.
 	 */
 	function Cancel(message) {
+	  // 设置实例属性message
 	  this.message = message;
 	}
 	
+	// 原型上增加toString方法
 	Cancel.prototype.toString = function toString() {
 	  return 'Cancel' + (this.message ? ': ' + this.message : '');
 	};
 	
+	// 原型属性__CANCEL__为true
 	Cancel.prototype.__CANCEL__ = true;
 	
 	module.exports = Cancel;
@@ -1724,9 +1799,9 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	/**
 	 * A `CancelToken` is an object that can be used to request cancellation of an operation.
-	 *
+	 * CancelToken构造器
 	 * @class
-	 * @param {Function} executor The executor function.
+	 * @param {Function} executor 执行器，必须是一个函数
 	 */
 	function CancelToken(executor) {
 	  if (typeof executor !== 'function') {
@@ -1734,24 +1809,31 @@ return /******/ (function(modules) { // webpackBootstrap
 	  }
 	
 	  var resolvePromise;
+	  // 创建一个promise实例，把它的resolve方法暂存到变量resolvePromise
 	  this.promise = new Promise(function promiseExecutor(resolve) {
 	    resolvePromise = resolve;
 	  });
 	
 	  var token = this;
+	  // 调用执行器，它接收cancel函数作为参数
+	  // 下面的代码CancelToken.source方法中，创建实例后，cancel方法就会被暴露出来给变量cancel
 	  executor(function cancel(message) {
+	    // 如果实例上存在reason，说明已经执行过了
 	    if (token.reason) {
 	      // Cancellation has already been requested
 	      return;
 	    }
-	
+	    // 实例化Cancel构造器，暂存为token.reason,作为取消的原因
 	    token.reason = new Cancel(message);
+	    // 完成这个promise
+	    // 把promise的控制权放在executor函数里面
 	    resolvePromise(token.reason);
 	  });
 	}
 	
 	/**
 	 * Throws a `Cancel` if cancellation has been requested.
+	 * 如果取消已经被执行过了,直接抛出异常
 	 */
 	CancelToken.prototype.throwIfRequested = function throwIfRequested() {
 	  if (this.reason) {
@@ -1762,10 +1844,14 @@ return /******/ (function(modules) { // webpackBootstrap
 	/**
 	 * Returns an object that contains a new `CancelToken` and a function that, when called,
 	 * cancels the `CancelToken`.
+	 * 添加静态方法
 	 */
 	CancelToken.source = function source() {
 	  var cancel;
+	  // 又创建一个新的CancelToken实例
 	  var token = new CancelToken(function executor(c) {
+	    // 用cancel将executor方法的变量c的控制权拿出来了
+	    // 这个c就是上面的`function cancel(message) {}`
 	    cancel = c;
 	  });
 	  return {
